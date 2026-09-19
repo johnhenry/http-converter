@@ -167,9 +167,9 @@ export const fromResponse = async (response, request = null, options = {}) => {
 export const toRequest = (harEntry) => {
   const { request } = harEntry;
   const headers = {};
-  
-  // Convert headers array to object
-  request.headers.forEach(({ name, value }) => {
+
+  // Convert headers array to object (headers is optional per the HAR spec)
+  (request.headers || []).forEach(({ name, value }) => {
     const key = name.toLowerCase();
     if (headers[key]) {
       headers[key] = Array.isArray(headers[key])
@@ -179,18 +179,18 @@ export const toRequest = (harEntry) => {
       headers[key] = value;
     }
   });
-  
+
   // Add cookies if present
   if (request.cookies && request.cookies.length > 0) {
     headers.cookie = request.cookies
       .map(cookie => `${cookie.name}=${cookie.value}`)
       .join('; ');
   }
-  
+
   return {
     method: request.method,
     url: buildUrlFromHar(request),
-    httpVersion: request.httpVersion.replace('HTTP/', ''),
+    httpVersion: (request.httpVersion || 'HTTP/1.1').replace('HTTP/', ''),
     headers,
     body: request.postData?.text || null
   };
@@ -206,9 +206,9 @@ export const toRequest = (harEntry) => {
 export const toResponse = (harEntry) => {
   const { response } = harEntry;
   const headers = {};
-  
-  // Convert headers array to object
-  response.headers.forEach(({ name, value }) => {
+
+  // Convert headers array to object (headers is optional per the HAR spec)
+  (response.headers || []).forEach(({ name, value }) => {
     const key = name.toLowerCase();
     if (headers[key]) {
       headers[key] = Array.isArray(headers[key])
@@ -218,7 +218,7 @@ export const toResponse = (harEntry) => {
       headers[key] = value;
     }
   });
-  
+
   // Add cookies if present
   if (response.cookies && response.cookies.length > 0) {
     headers['set-cookie'] = response.cookies.map(cookie => {
@@ -232,14 +232,40 @@ export const toResponse = (harEntry) => {
       return cookieStr;
     });
   }
-  
+
   return {
-    httpVersion: response.httpVersion.replace('HTTP/', ''),
+    httpVersion: (response.httpVersion || 'HTTP/1.1').replace('HTTP/', ''),
     statusCode: response.status,
     statusText: response.statusText,
     headers,
-    body: response.content?.text || null
+    body: decodeHarContent(response.content)
   };
+};
+
+/**
+ * Extract the body text from a HAR response `content` object, decoding it
+ * when the HAR spec's optional `encoding: "base64"` marker is present
+ * (commonly used for binary/non-UTF8 response bodies).
+ * @param {Object} [content] - HAR response.content
+ * @returns {string|null} Decoded body text
+ */
+const decodeHarContent = (content) => {
+  const text = content?.text;
+  if (!text) return null;
+
+  if (content.encoding === 'base64') {
+    try {
+      const binary = atob(text);
+      const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+      return new TextDecoder('utf-8').decode(bytes);
+    } catch {
+      // Malformed base64 - fall back to the raw (still-encoded) text
+      // rather than throwing on an otherwise-valid HAR entry.
+      return text;
+    }
+  }
+
+  return text;
 };
 
 /**
