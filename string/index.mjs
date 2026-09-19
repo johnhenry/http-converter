@@ -28,38 +28,33 @@ export const parse = (httpString) => {
  * parseRequest('POST /api HTTP/1.1\\r\\nHost: example.com\\r\\n\\r\\n{"data":1}')
  */
 export const parseRequest = (requestString) => {
-  const lines = requestString.split(/\r?\n/);
-  const requestLine = lines[0].trim();
+  const { headLines, body } = splitHeadAndBody(requestString);
+  const requestLine = headLines[0].trim();
   const parts = requestLine.split(' ');
-  
+
   if (parts.length < 2) {
     throw new Error('Invalid HTTP request line');
   }
-  
+
   const method = parts[0];
   let url = parts[1];
   const httpVersion = parts[2] ? parts[2].replace('HTTP/', '') : '1.1';
-  
+
   // Check if URL is absolute (contains protocol or starts with //)
   const isAbsoluteUrl = /^https?:\/\//.test(url) || url.startsWith('//');
-  
+
   const headers = {};
-  let bodyStart = -1;
-  
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i] === '' || lines[i] === '\r') {
-      bodyStart = i + 1;
-      break;
-    }
-    const colonIndex = lines[i].indexOf(':');
+
+  for (let i = 1; i < headLines.length; i++) {
+    const colonIndex = headLines[i].indexOf(':');
     if (colonIndex > -1) {
-      const name = lines[i].substring(0, colonIndex).trim();
-      const value = lines[i].substring(colonIndex + 1).trim();
+      const name = headLines[i].substring(0, colonIndex).trim();
+      const value = headLines[i].substring(colonIndex + 1).trim();
       const key = name.toLowerCase();
-      
+
       // Handle multiple headers with same name
       if (headers[key]) {
-        headers[key] = Array.isArray(headers[key]) 
+        headers[key] = Array.isArray(headers[key])
           ? [...headers[key], value]
           : [headers[key], value];
       } else {
@@ -67,14 +62,10 @@ export const parseRequest = (requestString) => {
       }
     }
   }
-  
+
   // If URL is not absolute but has a Host header, we could optionally construct the full URL
   // For now, we'll keep the URL as provided in the request line
-  
-  const body = bodyStart > -1 && bodyStart < lines.length
-    ? lines.slice(bodyStart).join('\n')
-    : null;
-  
+
   return {
     method,
     url,
@@ -92,29 +83,24 @@ export const parseRequest = (requestString) => {
  * parseResponse('HTTP/1.1 200 OK\\r\\nContent-Type: text/plain\\r\\n\\r\\nHello')
  */
 export const parseResponse = (responseString) => {
-  const lines = responseString.split(/\r?\n/);
-  const statusLine = lines[0].trim();
+  const { headLines, body } = splitHeadAndBody(responseString);
+  const statusLine = headLines[0].trim();
   const match = statusLine.match(/^HTTP\/(\d\.\d)\s+(\d+)\s*(.*)?$/);
-  
+
   if (!match) {
     throw new Error('Invalid HTTP response status line');
   }
-  
+
   const [, httpVersion, statusCode, statusText] = match;
   const headers = {};
-  let bodyStart = -1;
-  
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i] === '' || lines[i] === '\r') {
-      bodyStart = i + 1;
-      break;
-    }
-    const colonIndex = lines[i].indexOf(':');
+
+  for (let i = 1; i < headLines.length; i++) {
+    const colonIndex = headLines[i].indexOf(':');
     if (colonIndex > -1) {
-      const name = lines[i].substring(0, colonIndex).trim();
-      const value = lines[i].substring(colonIndex + 1).trim();
+      const name = headLines[i].substring(0, colonIndex).trim();
+      const value = headLines[i].substring(colonIndex + 1).trim();
       const key = name.toLowerCase();
-      
+
       if (headers[key]) {
         headers[key] = Array.isArray(headers[key])
           ? [...headers[key], value]
@@ -124,11 +110,7 @@ export const parseResponse = (responseString) => {
       }
     }
   }
-  
-  const body = bodyStart > -1 && bodyStart < lines.length
-    ? lines.slice(bodyStart).join('\n')
-    : null;
-  
+
   return {
     httpVersion,
     statusCode: parseInt(statusCode, 10),
@@ -136,6 +118,43 @@ export const parseResponse = (responseString) => {
     headers,
     body: body || null
   };
+};
+
+/**
+ * Split a raw HTTP message into its header lines and raw body text.
+ *
+ * Headers are split line-by-line (tolerating either CRLF or bare LF), but
+ * the body is sliced verbatim from the original string rather than being
+ * reassembled by joining split lines with `\n` - that reassembly would
+ * silently rewrite any CRLF sequences *inside* the body to LF, corrupting
+ * binary-ish or exact-fidelity payloads on parse.
+ * @param {string} raw - Raw HTTP request/response text
+ * @returns {{ headLines: string[], body: string|null }}
+ */
+const splitHeadAndBody = (raw) => {
+  const lineEndRegex = /\r\n|\n/g;
+  const headLines = [];
+  let lineStart = 0;
+  let match;
+
+  while ((match = lineEndRegex.exec(raw)) !== null) {
+    const line = raw.slice(lineStart, match.index);
+    if (line === '') {
+      // Blank line marks the end of the headers; the body is everything
+      // after it, taken verbatim (untouched by line-ending normalization).
+      return { headLines, body: raw.slice(lineEndRegex.lastIndex) };
+    }
+    headLines.push(line);
+    lineStart = lineEndRegex.lastIndex;
+  }
+
+  // No blank-line separator found - whatever's left is the last header
+  // line (or the request/status line itself), and there is no body.
+  if (lineStart < raw.length) {
+    headLines.push(raw.slice(lineStart));
+  }
+
+  return { headLines, body: null };
 };
 
 /**
