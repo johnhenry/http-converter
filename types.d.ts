@@ -135,33 +135,33 @@ export declare namespace string {
   export function parse(httpString: string): HttpRequest | HttpResponse;
   export function parseRequest(requestString: string): HttpRequest;
   export function parseResponse(responseString: string): HttpResponse;
-  export function stringify(httpObject: HttpRequest | HttpResponse): string | Promise<string>;
-  export function stringifyRequest(request: HttpRequest | Request, options?: StringifyOptions): string | Promise<string>;
-  export function stringifyResponse(response: HttpResponse | Response): string | Promise<string>;
+  export function stringify(httpObject: HttpRequest | HttpResponse): Promise<string>;
+  export function stringifyRequest(request: HttpRequest | Request, options?: StringifyOptions): Promise<string>;
+  export function stringifyResponse(response: HttpResponse | Response): Promise<string>;
 }
 
 // HAR module exports
 export declare namespace har {
-  export function fromRequest(request: HttpRequest | Request, options?: HarOptions): HarEntry;
-  export function fromResponse(response: HttpResponse | Response, request?: HttpRequest | Request | null, options?: HarOptions): HarEntry;
+  export function fromRequest(request: HttpRequest | Request, options?: HarOptions): Promise<HarEntry>;
+  export function fromResponse(response: HttpResponse | Response, request?: HttpRequest | Request | null, options?: HarOptions): Promise<HarEntry>;
   export function toRequest(harEntry: HarEntry): HttpRequest;
   export function toResponse(harEntry: HarEntry): HttpResponse;
 }
 
 // cURL module exports
 export declare namespace curl {
-  export function fromRequest(request: HttpRequest | Request, options?: CurlOptions): string;
+  export function fromRequest(request: HttpRequest | Request, options?: CurlOptions): Promise<string>;
   export function toRequest(curlCommand: string): HttpRequest;
   export function toFetchCode(curlCommand: string): string;
 }
 
 // Fetch module exports
 export declare namespace fetch {
-  export function fromRequest(request: HttpRequest | Request): { url: string; options: RequestInit };
+  export function fromRequest(request: HttpRequest | Request): Promise<{ url: string; options: RequestInit }>;
   export function toRequest(url: string, options?: RequestInit): HttpRequest;
   export function fromResponse(response: HttpResponse | Response, body?: string | null): any;
   export function toResponse(fetchResponse: Response, includeBody?: boolean): Promise<HttpResponse>;
-  export function toCode(request: HttpRequest | Request, options?: FetchOptions): string;
+  export function toCode(request: HttpRequest | Request, options?: FetchOptions): Promise<string>;
   export function createMockResponse(httpResponse: HttpResponse): Response;
 }
 

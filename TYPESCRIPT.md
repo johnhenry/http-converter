@@ -19,8 +19,9 @@ const request: HttpRequest = {
 };
 
 // Convert with full type inference
-const curl: string = http.curl.fromRequest(request);
-const har: HarEntry = http.har.fromRequest(request);
+// curl.fromRequest and har.fromRequest always return a Promise
+const curl: string = await http.curl.fromRequest(request);
+const har: HarEntry = await http.har.fromRequest(request);
 ```
 
 ## Native Request/Response Support

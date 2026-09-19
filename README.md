@@ -32,16 +32,16 @@ Host: example.com
 
 `);
 
-// Convert to cURL
-const curl = http.curl.fromRequest(request);
+// Convert to cURL (fromRequest is async)
+const curl = await http.curl.fromRequest(request);
 console.log(curl);
 // curl 'https://example.com/api' -H 'host: example.com'
 
-// Convert to HAR
-const harEntry = http.har.fromRequest(request);
+// Convert to HAR (fromRequest is async)
+const harEntry = await http.har.fromRequest(request);
 
-// Convert to Fetch
-const { url, options } = http.fetch.fromRequest(request);
+// Convert to Fetch (fromRequest is async)
+const { url, options } = await http.fetch.fromRequest(request);
 const response = await fetch(url, options);
 ```
 
@@ -67,7 +67,8 @@ Location: /users/123
 {"id": 123, "name": "John Doe"}`);
 
 // Stringify with absolute URL (default for absolute URLs)
-const httpString1 = string.stringifyRequest({
+// stringifyRequest/stringifyResponse/stringify always return a Promise
+const httpString1 = await string.stringifyRequest({
   method: 'GET',
   url: 'https://www.example.com/path'
 });
@@ -75,7 +76,7 @@ const httpString1 = string.stringifyRequest({
 // host: www.example.com
 
 // Stringify with path only
-const httpString2 = string.stringifyRequest({
+const httpString2 = await string.stringifyRequest({
   method: 'GET',
   url: 'https://www.example.com/path'
 }, { absoluteUrl: false });
@@ -90,15 +91,15 @@ Convert to/from HAR (HTTP Archive) format:
 ```javascript
 import * as har from 'http-converter/har';
 
-// Convert request to HAR entry
-const harEntry = har.fromRequest({
+// Convert request to HAR entry (fromRequest is async)
+const harEntry = await har.fromRequest({
   method: 'GET',
   url: '/api/users',
   headers: { 'accept': 'application/json' }
 });
 
-// Convert response to HAR (can merge with request)
-const completeEntry = har.fromResponse(response, request);
+// Convert response to HAR (can merge with request); fromResponse is async
+const completeEntry = await har.fromResponse(response, request);
 
 // Convert back to HTTP objects
 const httpRequest = har.toRequest(harEntry);
@@ -112,8 +113,8 @@ Convert between cURL commands and HTTP requests:
 ```javascript
 import * as curl from 'http-converter/curl';
 
-// Generate cURL command
-const command = curl.fromRequest({
+// Generate cURL command (fromRequest is async)
+const command = await curl.fromRequest({
   method: 'POST',
   url: 'https://api.example.com/users',
   headers: { 'content-type': 'application/json' },
@@ -136,8 +137,8 @@ Convert between Fetch API and HTTP objects:
 ```javascript
 import * as fetch from 'http-converter/fetch';
 
-// Convert to Fetch parameters
-const { url, options } = fetch.fromRequest({
+// Convert to Fetch parameters (fromRequest is async)
+const { url, options } = await fetch.fromRequest({
   method: 'POST',
   url: '/api/users',
   headers: { 'content-type': 'application/json' },
@@ -150,8 +151,8 @@ const response = await fetch(url, options);
 // Convert Response to HTTP object
 const httpResponse = await fetch.toResponse(response, true);
 
-// Generate fetch() code
-const code = fetch.toCode(request, { pretty: true, async: true });
+// Generate fetch() code (toCode is async)
+const code = await fetch.toCode(request, { pretty: true, async: true });
 ```
 
 ### Utility Functions
@@ -180,42 +181,53 @@ normalizeHeaders(new Headers({ 'Content-Type': 'text/html' })); // Fetch Headers
 
 ### String Module
 
+Note: `stringify`, `stringifyRequest`, and `stringifyResponse` are always `async` (they return a `Promise<string>`), since they must support native `Request`/`Response` inputs that require awaiting `.text()`.
+
 - `parse(httpString)` - Auto-detect and parse HTTP string
 - `parseRequest(requestString)` - Parse HTTP request string
 - `parseResponse(responseString)` - Parse HTTP response string
-- `stringify(httpObject)` - Auto-detect and stringify HTTP object
-- `stringifyRequest(request)` - Stringify HTTP request
-- `stringifyResponse(response)` - Stringify HTTP response
+- `stringify(httpObject)` - Auto-detect and stringify HTTP object (async)
+- `stringifyRequest(request)` - Stringify HTTP request (async)
+- `stringifyResponse(response)` - Stringify HTTP response (async)
 
 ### HAR Module
 
-- `fromRequest(request, options)` - Convert request to HAR entry
-- `fromResponse(response, request, options)` - Convert response to HAR entry
+Note: `fromRequest` and `fromResponse` are always `async` (they return a `Promise<HarEntry>`).
+
+- `fromRequest(request, options)` - Convert request to HAR entry (async)
+- `fromResponse(response, request, options)` - Convert response to HAR entry (async)
 - `toRequest(harEntry)` - Convert HAR entry to request
 - `toResponse(harEntry)` - Convert HAR entry to response
 
 ### cURL Module
 
-- `fromRequest(request, options)` - Convert request to cURL command
+Note: `fromRequest` is always `async` (it returns a `Promise<string>`).
+
+- `fromRequest(request, options)` - Convert request to cURL command (async)
 - `toRequest(curlCommand)` - Parse cURL command to request
 - `toFetchCode(curlCommand)` - Generate fetch() code from cURL
 
 ### Fetch Module
 
-- `fromRequest(request)` - Convert request to Fetch parameters
+Note: `fromRequest` and `toCode` are always `async`.
+
+- `fromRequest(request)` - Convert request to Fetch parameters (async)
 - `toRequest(url, options)` - Convert Fetch parameters to request
 - `fromResponse(response, body)` - Convert response to Fetch-like object
-- `toResponse(fetchResponse, includeBody)` - Convert Fetch Response to HTTP object
-- `toCode(request, options)` - Generate fetch() code
+- `toResponse(fetchResponse, includeBody)` - Convert Fetch Response to HTTP object (async)
+- `toCode(request, options)` - Generate fetch() code (async)
 - `createMockResponse(httpResponse)` - Create mock Response object
 
 ### Utilities
+
+These are available both as the root package export (`import { parseQueryString } from 'http-converter'`) and via the `http-converter/core/utils` subpath.
 
 - `detectType(input)` - Detect format type
 - `normalizeHeaders(headers)` - Normalize headers to plain object
 - `parseQueryString(url)` - Parse URL query parameters
 - `buildUrl(baseUrl, queryParams)` - Build URL with query parameters
 - `getByteSize(str)` - Calculate byte size of string
+- `formatHeaders(headers)` - Format headers object as an HTTP header block
 
 ### Body Module
 
@@ -296,7 +308,7 @@ Individual generators for each request component. Accept the same relevant optio
 
 | Export | Description |
 |--------|-------------|
-| `http-converter` | Core: `detectType`, `normalizeHeaders`, `allFormats` |
+| `http-converter` | Core: `detectType`, `normalizeHeaders`, `allFormats`, `parseQueryString`, `buildUrl`, `getByteSize`, `formatHeaders` |
 | `http-converter/string` | HTTP string parsing and stringification |
 | `http-converter/har` | HAR format conversion |
 | `http-converter/curl` | cURL command conversion |
