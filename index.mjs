@@ -7,7 +7,7 @@ export * as body from './body/index.mjs';
 export * as random from './random/index.mjs';
 
 // Re-export core utilities for convenience
-export { detectType, normalizeHeaders } from './core/utils.mjs';
+export { detectType, normalizeHeaders, parseQueryString, buildUrl, getByteSize, formatHeaders } from './core/utils.mjs';
 
 // Internal imports for allFormats (avoid name conflicts with JS keywords)
 import * as stringMod from './string/index.mjs';
