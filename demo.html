@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTTP Converter Demo</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1c;
+            color: #e9e9ea;
+            box-sizing: border-box;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        h1 {
+            color: #8c7ae6;
+            margin-bottom: 24px;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .panel {
+            background: #27272a;
+            border: 1px solid #393941;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 400px;
+        }
+        textarea {
+            width: 100%;
+            min-height: 300px;
+            background: #232334;
+            color: #e9e9ea;
+            border: 1px solid #393941;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            resize: vertical;
+            flex: 1;
+            margin: 0;
+            box-sizing: border-box;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #8c7ae6;
+        }
+        select, button {
+            background: #232334;
+            color: #e9e9ea;
+            border: 1px solid #393941;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        select {
+            min-width: 140px;
+        }
+        button {
+            background: #e67e22;
+            border-color: #e67e22;
+            font-weight: 500;
+            color: #fff;
+        }
+        button:hover {
+            background: #f39c12;
+            border-color: #f39c12;
+            transform: translateY(-1px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        label {
+            color: #a1a1a8;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        h3 {
+            margin: 0 0 16px 0;
+            color: #e9e9ea;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .error {
+            color: #e25f73;
+            font-size: 13px;
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: rgba(226, 95, 115, 0.1);
+            border-radius: 6px;
+            border: 1px solid rgba(226, 95, 115, 0.2);
+            display: none;
+        }
+        .error:not(:empty) {
+            display: block;
+        }
+        .examples {
+            margin-top: 32px;
+        }
+        .examples h3 {
+            margin-bottom: 12px;
+        }
+        .example-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .example-buttons button {
+            background: #8c7ae6;
+            border-color: #8c7ae6;
+            font-size: 13px;
+            padding: 6px 14px;
+        }
+        .example-buttons button:hover {
+            background: #a192ea;
+            border-color: #a192ea;
+        }
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .panel {
+                min-height: 350px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>HTTP Converter Demo</h1>
+    
+    <div class="container">
+        <div class="panel">
+            <h3>Input</h3>
+            <div class="controls">
+                <label>Format:</label>
+                <select id="inputFormat">
+                    <option value="auto">Auto-detect</option>
+                    <option value="string">HTTP String</option>
+                    <option value="curl">cURL Command</option>
+                    <option value="har">HAR Entry</option>
+                    <option value="fetch">Fetch Code</option>
+                </select>
+            </div>
+            <textarea id="input" placeholder="Paste your HTTP request, cURL command, or HAR entry here...">GET /api/users HTTP/1.1
+Host: api.example.com
+Accept: application/json
+Authorization: Bearer token123</textarea>
+        </div>
+        
+        <div class="panel">
+            <h3>Output</h3>
+            <div class="controls">
+                <label>Convert to:</label>
+                <select id="outputFormat">
+                    <option value="string">HTTP String</option>
+                    <option value="curl">cURL Command</option>
+                    <option value="har">HAR Entry</option>
+                    <option value="fetch">Fetch Code</option>
+                </select>
+                <button onclick="convert()">Convert</button>
+            </div>
+            <textarea id="output" readonly placeholder="Converted output will appear here..."></textarea>
+            <div id="error" class="error"></div>
+        </div>
+    </div>
+
+    <div class="examples">
+        <h3>Examples</h3>
+        <div class="example-buttons">
+            <button onclick="loadExample('post')">POST Request</button>
+            <button onclick="loadExample('curl')">cURL Command</button>
+            <button onclick="loadExample('response')">HTTP Response</button>
+            <button onclick="loadExample('har')">HAR Entry</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as http from './index.mjs';
+        
+        // Make functions available globally
+        window.http = http;
+        
+        window.convert = function() {
+            const input = document.getElementById('input').value;
+            const inputFormat = document.getElementById('inputFormat').value;
+            const outputFormat = document.getElementById('outputFormat').value;
+            const errorEl = document.getElementById('error');
+            
+            errorEl.textContent = '';
+            errorEl.style.display = 'none';
+            
+            try {
+                let parsed;
+                
+                // Parse input based on format
+                if (inputFormat === 'auto') {
+                    // Try to parse as JSON first to check for HAR
+                    try {
+                        const jsonObj = JSON.parse(input);
+                        const detectedType = http.detectType(jsonObj);
+                        
+                        if (detectedType === 'har') {
+                            // It's a HAR entry
+                            if (jsonObj.request) {
+                                parsed = http.har.toRequest(jsonObj);
+                            } else if (jsonObj.response && jsonObj.response.status) {
+                                parsed = http.har.toResponse(jsonObj);
+                            } else {
+                                throw new Error('Invalid HAR format');
+                            }
+                        } else if (detectedType === 'request' || detectedType === 'response') {
+                            parsed = jsonObj;
+                        } else {
+                            throw new Error('Could not detect JSON format');
+                        }
+                    } catch (jsonError) {
+                        // Not JSON, try other formats
+                        const detectedType = http.detectType(input);
+                        if (detectedType === 'unknown') {
+                            throw new Error('Could not detect input format');
+                        }
+                        
+                        switch (detectedType) {
+                            case 'request':
+                            case 'response':
+                                parsed = http.string.parse(input);
+                                break;
+                            case 'curl':
+                                parsed = http.curl.toRequest(input);
+                                break;
+                            default:
+                                throw new Error('Unknown format type: ' + detectedType);
+                        }
+                    }
+                } else {
+                    switch (inputFormat) {
+                        case 'string':
+                            parsed = http.string.parse(input);
+                            break;
+                        case 'curl':
+                            parsed = http.curl.toRequest(input);
+                            break;
+                        case 'har':
+                            const harObj = JSON.parse(input);
+                            parsed = harObj.request ? http.har.toRequest(harObj) : harObj;
+                            break;
+                    }
+                }
+                
+                // Convert to output format
+                let output;
+                switch (outputFormat) {
+                    case 'string':
+                        output = http.string.stringify(parsed);
+                        break;
+                    case 'curl':
+                        if ('statusCode' in parsed) {
+                            throw new Error('Cannot convert HTTP response to cURL');
+                        }
+                        output = http.curl.fromRequest(parsed, { pretty: true });
+                        break;
+                    case 'har':
+                        if ('statusCode' in parsed) {
+                            output = JSON.stringify(http.har.fromResponse(parsed), null, 2);
+                        } else {
+                            output = JSON.stringify(http.har.fromRequest(parsed), null, 2);
+                        }
+                        break;
+                    case 'fetch':
+                        if ('statusCode' in parsed) {
+                            throw new Error('Cannot convert HTTP response to Fetch code');
+                        }
+                        output = http.fetch.toCode(parsed, { pretty: true, async: true });
+                        break;
+                }
+                
+                document.getElementById('output').value = output;
+                
+            } catch (error) {
+                errorEl.textContent = `Error: ${error.message}`;
+                errorEl.style.display = 'block';
+                document.getElementById('output').value = '';
+            }
+        };
+        
+        window.loadExample = function(type) {
+            const examples = {
+                post: `POST /api/users HTTP/1.1
+Host: api.example.com
+Content-Type: application/json
+Authorization: Bearer token123
+
+{
+  "name": "John Doe",
+  "email": "john@example.com"
+}`,
+                curl: `curl -X POST 'https://api.example.com/users' \\
+  -H 'Content-Type: application/json' \\
+  -H 'Authorization: Bearer token123' \\
+  -d '{"name":"Jane Doe","email":"jane@example.com"}'`,
+                response: `HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /api/users/456
+X-RateLimit-Remaining: 99
+
+{
+  "id": 456,
+  "name": "John Doe",
+  "email": "john@example.com",
+  "created": "2024-01-15T10:30:00Z"
+}`,
+                har: `{
+  "startedDateTime": "2024-01-15T10:30:00.000Z",
+  "time": 125,
+  "request": {
+    "method": "GET",
+    "url": "https://api.example.com/data",
+    "httpVersion": "HTTP/1.1",
+    "cookies": [],
+    "headers": [
+      { "name": "Accept", "value": "application/json" },
+      { "name": "Authorization", "value": "Bearer token123" }
+    ],
+    "queryString": [
+      { "name": "page", "value": "1" },
+      { "name": "limit", "value": "10" }
+    ],
+    "headersSize": -1,
+    "bodySize": 0
+  },
+  "response": {
+    "status": 200,
+    "statusText": "OK",
+    "httpVersion": "HTTP/1.1",
+    "cookies": [],
+    "headers": [
+      { "name": "Content-Type", "value": "application/json" },
+      { "name": "Cache-Control", "value": "max-age=3600" }
+    ],
+    "content": {
+      "size": 245,
+      "mimeType": "application/json",
+      "text": "{\\"data\\":[{\\"id\\":1,\\"name\\":\\"Item 1\\"}],\\"total\\":100}"
+    },
+    "redirectURL": "",
+    "headersSize": -1,
+    "bodySize": 245
+  },
+  "cache": {},
+  "timings": {
+    "blocked": 2,
+    "dns": 15,
+    "connect": 25,
+    "send": 1,
+    "wait": 70,
+    "receive": 12,
+    "ssl": 20
+  }
+}`
+            };
+            
+            document.getElementById('input').value = examples[type];
+            // Set the format dropdown appropriately based on the example type
+            if (type === 'har') {
+                document.getElementById('inputFormat').value = 'har';
+            } else if (type === 'curl') {
+                document.getElementById('inputFormat').value = 'curl';
+            } else {
+                document.getElementById('inputFormat').value = 'string';
+            }
+        };
+    </script>
+</body>
+</html>

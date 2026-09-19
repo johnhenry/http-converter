@@ -1,0 +1,66 @@
+{
+  "name": "http-converter",
+  "version": "1.0.0",
+  "description": "Modern HTTP format converter - Transform between HTTP strings, HAR, cURL commands, and Fetch API",
+  "type": "module",
+  "main": "index.mjs",
+  "types": "types.d.ts",
+  "exports": {
+    ".": {
+      "import": "./index.mjs",
+      "types": "./types.d.ts"
+    },
+    "./string": "./string/index.mjs",
+    "./har": "./har/index.mjs",
+    "./curl": "./curl/index.mjs",
+    "./fetch": "./fetch/index.mjs",
+    "./core/utils": "./core/utils.mjs",
+    "./body": "./body/index.mjs",
+    "./random": "./random/index.mjs"
+  },
+  "files": [
+    "index.mjs",
+    "types.d.ts",
+    "core/",
+    "string/",
+    "har/",
+    "curl/",
+    "fetch/",
+    "body/",
+    "random/"
+  ],
+  "scripts": {
+    "test": "node --test test/**/*.test.mjs",
+    "test:watch": "node --test --watch test/**/*.test.mjs",
+    "lint": "eslint ."
+  },
+  "keywords": [
+    "http",
+    "har",
+    "curl",
+    "fetch",
+    "converter",
+    "parser",
+    "http-parser",
+    "http-string",
+    "curl-to-fetch",
+    "har-converter",
+    "browser"
+  ],
+  "author": "John Henry",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/johnhenry/http-converter.git"
+  },
+  "bugs": {
+    "url": "https://github.com/johnhenry/http-converter/issues"
+  },
+  "homepage": "https://github.com/johnhenry/http-converter#readme"
+}
