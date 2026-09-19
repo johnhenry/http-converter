@@ -161,7 +161,7 @@ Host: example.com
       assert.equal(request.body, '{"test":true}');
     });
 
-    test('should handle response conversion', () => {
+    test('should handle response conversion', async () => {
       const response = {
         statusCode: 200,
         statusText: 'OK',
@@ -169,12 +169,40 @@ Host: example.com
         body: '<html>Test</html>'
       };
 
-      const har = http.har.fromResponse(response);
-      
+      const har = await http.har.fromResponse(response);
+
       assert.equal(har.response.status, 200);
       assert.equal(har.response.statusText, 'OK');
       assert.equal(har.response.content.text, '<html>Test</html>');
       assert.equal(har.response.content.mimeType, 'text/html');
+    });
+
+    test('should not discard response data when request is provided (regression)', async () => {
+      const request = {
+        method: 'POST',
+        url: 'https://api.example.com/users',
+        headers: { 'content-type': 'application/json' },
+        body: '{"name":"Test"}'
+      };
+      const response = {
+        statusCode: 201,
+        statusText: 'Created',
+        headers: { 'content-type': 'application/json' },
+        body: '{"id":42,"name":"Test"}'
+      };
+
+      const har = await http.har.fromResponse(response, request);
+
+      // Previously, passing `request` caused fromResponse to mutate a
+      // not-yet-resolved Promise from fromRequest and return that Promise
+      // instead of the built HAR entry, silently discarding the real
+      // response data and leaving the zeroed-out placeholder in place.
+      assert.equal(har.response.status, 201);
+      assert.equal(har.response.statusText, 'Created');
+      assert.equal(har.response.content.text, '{"id":42,"name":"Test"}');
+      assert.equal(har.response.content.mimeType, 'application/json');
+      assert.equal(har.request.method, 'POST');
+      assert.equal(har.request.url, 'https://api.example.com/users');
     });
   });
 

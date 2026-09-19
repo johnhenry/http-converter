@@ -107,12 +107,12 @@ const fromRequestSync = (request, options = {}) => {
  * @param {Object} response - HTTP response object
  * @param {Object} request - HTTP request object (optional)
  * @param {Object} options - Additional options
- * @returns {Object} HAR entry
+ * @returns {Promise<Object>} HAR entry
  * @example
- * fromResponse({ statusCode: 200, headers: {}, body: '{}' })
+ * await fromResponse({ statusCode: 200, headers: {}, body: '{}' })
  */
-export const fromResponse = (response, request = null, options = {}) => {
-  const entry = request ? fromRequest(request, options) : {
+export const fromResponse = async (response, request = null, options = {}) => {
+  const entry = request ? await fromRequest(request, options) : {
     startedDateTime: options.startedDateTime || new Date().toISOString(),
     time: options.time || 0,
     request: {
