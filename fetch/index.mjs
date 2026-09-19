@@ -200,20 +200,20 @@ const buildCode = (url, fetchOptions, options = {}) => {
     code += 'const response = await ';
   }
   
-  code += `fetch('${url}'`;
-  
+  code += `fetch(${JSON.stringify(url)}`;
+
   if (Object.keys(fetchOptions).length > 0) {
     if (pretty) {
       code += ', {\n';
-      
+
       if (fetchOptions.method) {
-        code += `  method: '${fetchOptions.method}',\n`;
+        code += `  method: ${JSON.stringify(fetchOptions.method)},\n`;
       }
-      
+
       if (fetchOptions.headers) {
         code += '  headers: {\n';
         for (const [name, value] of Object.entries(fetchOptions.headers)) {
-          code += `    '${name}': '${value}',\n`;
+          code += `    ${JSON.stringify(name)}: ${JSON.stringify(value)},\n`;
         }
         code += '  },\n';
       }
