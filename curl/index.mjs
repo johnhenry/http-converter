@@ -120,11 +120,17 @@ const fromRequestSync = (request, options = {}) => {
  * Parse cURL command to HTTP request
  * @param {string} curlCommand - cURL command string
  * @returns {Object} HTTP request object
+ * @throws {Error} If the input isn't a recognizable cURL command, a flag is
+ *   missing its required value, or a quoted argument is unterminated.
  * @example
  * toRequest("curl -X POST 'https://api.com' -H 'Content-Type: application/json' -d '{}'")
  * // Returns: { method: 'POST', url: 'https://api.com', headers: {...}, body: '{}' }
  */
 export const toRequest = (curlCommand) => {
+  if (typeof curlCommand !== 'string' || !/^\s*curl\b/i.test(curlCommand)) {
+    throw new Error('Invalid cURL command: input must start with "curl"');
+  }
+
   const args = parseCurlCommand(curlCommand);
   const request = {
     method: 'GET',
@@ -133,26 +139,36 @@ export const toRequest = (curlCommand) => {
     headers: {},
     body: null
   };
-  
+
+  // Requires the value that follows a flag, throwing a clear error instead
+  // of silently producing `undefined` or crashing deeper in the call stack.
+  const requireValue = (i, flag) => {
+    const value = args[i];
+    if (value === undefined) {
+      throw new Error(`Invalid cURL command: ${flag} is missing its required value`);
+    }
+    return value;
+  };
+
   let i = 0;
   while (i < args.length) {
     const arg = args[i];
-    
+
     switch (arg) {
       case '-X':
       case '--request':
-        request.method = args[++i];
+        request.method = requireValue(++i, arg);
         break;
-        
+
       case '-H':
-      case '--header':
-        const header = args[++i];
+      case '--header': {
+        const header = requireValue(++i, arg);
         const colonIndex = header.indexOf(':');
         if (colonIndex > -1) {
           const name = header.substring(0, colonIndex).trim();
           const value = header.substring(colonIndex + 1).trim();
           const key = name.toLowerCase();
-          
+
           if (request.headers[key]) {
             request.headers[key] = Array.isArray(request.headers[key])
               ? [...request.headers[key], value]
@@ -162,20 +178,21 @@ export const toRequest = (curlCommand) => {
           }
         }
         break;
-        
+      }
+
       case '-d':
       case '--data':
       case '--data-raw':
       case '--data-binary':
-        request.body = args[++i];
+        request.body = requireValue(++i, arg);
         // Set method to POST if not explicitly set and using data
         if (request.method === 'GET') {
           request.method = 'POST';
         }
         break;
-        
-      case '--data-urlencode':
-        const data = args[++i];
+
+      case '--data-urlencode': {
+        const data = requireValue(++i, arg);
         // Handle name=value format
         const eqIndex = data.indexOf('=');
         if (eqIndex > -1) {
@@ -190,41 +207,43 @@ export const toRequest = (curlCommand) => {
           request.method = 'POST';
         }
         break;
-        
+      }
+
       case '-F':
       case '--form':
         // Form field - would need multipart handling
         // For now, just note it in headers
+        requireValue(++i, arg); // Validate presence; value itself isn't used yet
         request.headers['content-type'] = 'multipart/form-data';
         if (request.method === 'GET') {
           request.method = 'POST';
         }
-        i++; // Skip the value
         break;
-        
+
       case '-u':
-      case '--user':
+      case '--user': {
         // Basic auth
-        const auth = args[++i];
+        const auth = requireValue(++i, arg);
         const authHeader = 'Basic ' + btoa(auth);
         request.headers.authorization = authHeader;
         break;
-        
+      }
+
       case '-A':
       case '--user-agent':
-        request.headers['user-agent'] = args[++i];
+        request.headers['user-agent'] = requireValue(++i, arg);
         break;
-        
+
       case '-e':
       case '--referer':
-        request.headers.referer = args[++i];
+        request.headers.referer = requireValue(++i, arg);
         break;
-        
+
       case '-b':
       case '--cookie':
-        request.headers.cookie = args[++i];
+        request.headers.cookie = requireValue(++i, arg);
         break;
-        
+
       case '-L':
       case '--location':
       case '-v':
@@ -236,13 +255,13 @@ export const toRequest = (curlCommand) => {
       case '--compressed':
         // These are flags, no value to consume
         break;
-        
+
       case '--max-time':
       case '--connect-timeout':
       case '-m':
-        i++; // Skip the timeout value
+        requireValue(++i, arg); // Skip the timeout value (validated, unused)
         break;
-        
+
       default:
         // If it doesn't start with -, it's likely the URL
         if (!arg.startsWith('-') && !request.url) {
@@ -250,47 +269,114 @@ export const toRequest = (curlCommand) => {
         }
         break;
     }
-    
+
     i++;
   }
-  
+
+  if (!request.url) {
+    throw new Error('Invalid cURL command: no URL found');
+  }
+
   // Ensure URL has protocol
-  if (request.url && !request.url.match(/^https?:\/\//)) {
+  if (!request.url.match(/^https?:\/\//)) {
     request.url = 'https://' + request.url;
   }
-  
+
   return request;
 };
 
 /**
- * Parse cURL command into arguments
+ * Parse cURL command into arguments, following POSIX-shell-like quoting
+ * rules: single quotes are fully literal, double quotes allow \\, \", \$
+ * and \` escapes, and a backslash outside quotes escapes the next
+ * character. Adjacent quoted/unquoted runs (e.g. `-H"foo"` or the common
+ * `'it'\''s'` escaped-apostrophe pattern) are concatenated into one
+ * argument, matching real shell word-splitting.
  * @param {string} command - cURL command string
- * @returns {Array<string>} Parsed arguments
+ * @returns {Array<string>} Parsed arguments (with the leading `curl` removed)
+ * @throws {Error} If a quoted string is never closed
  */
 const parseCurlCommand = (command) => {
   const args = [];
-  const regex = /(?:[^\s"']+|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')+/g;
-  let match;
-  
-  while ((match = regex.exec(command)) !== null) {
-    let arg = match[0];
-    
-    // Skip 'curl' command itself
-    if (arg === 'curl' && args.length === 0) {
+  let current = '';
+  let hasCurrent = false;
+  let i = 0;
+  const len = command.length;
+
+  while (i < len) {
+    const ch = command[i];
+
+    if (/\s/.test(ch)) {
+      if (hasCurrent) {
+        args.push(current);
+        current = '';
+        hasCurrent = false;
+      }
+      i++;
       continue;
     }
-    
-    // Remove surrounding quotes but keep internal ones
-    if ((arg.startsWith('"') && arg.endsWith('"')) || 
-        (arg.startsWith("'") && arg.endsWith("'"))) {
-      arg = arg.slice(1, -1);
-      // Unescape escaped quotes
-      arg = arg.replace(/\\"/g, '"').replace(/\\'/g, "'");
+
+    if (ch === "'") {
+      hasCurrent = true;
+      const start = i;
+      i++;
+      while (i < len && command[i] !== "'") {
+        current += command[i];
+        i++;
+      }
+      if (i >= len) {
+        throw new Error(`Invalid cURL command: unterminated single-quoted string starting at index ${start}`);
+      }
+      i++; // consume closing quote
+      continue;
     }
-    
-    args.push(arg);
+
+    if (ch === '"') {
+      hasCurrent = true;
+      const start = i;
+      i++;
+      let closed = false;
+      while (i < len) {
+        if (command[i] === '"') {
+          closed = true;
+          i++;
+          break;
+        }
+        if (command[i] === '\\' && i + 1 < len && '"\\$`'.includes(command[i + 1])) {
+          current += command[i + 1];
+          i += 2;
+        } else {
+          current += command[i];
+          i++;
+        }
+      }
+      if (!closed) {
+        throw new Error(`Invalid cURL command: unterminated double-quoted string starting at index ${start}`);
+      }
+      continue;
+    }
+
+    if (ch === '\\' && i + 1 < len) {
+      current += command[i + 1];
+      hasCurrent = true;
+      i += 2;
+      continue;
+    }
+
+    current += ch;
+    hasCurrent = true;
+    i++;
   }
-  
+
+  if (hasCurrent) {
+    args.push(current);
+  }
+
+  // Skip 'curl' command itself
+  if (args[0] === 'curl') {
+    args.shift();
+  }
+
   return args;
 };
 
@@ -337,6 +423,6 @@ export const toFetchCode = (curlCommand) => {
   const optionsStr = Object.keys(options).length > 0
     ? ',\n  ' + JSON.stringify(options, null, 2).replace(/\n/g, '\n  ')
     : '';
-  
-  return `fetch('${url}'${optionsStr})`;
+
+  return `fetch(${JSON.stringify(url)}${optionsStr})`;
 };
