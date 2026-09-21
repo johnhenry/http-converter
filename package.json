@@ -50,7 +50,7 @@
   "author": "John Henry",
   "license": "MIT",
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=26.0.0"
   },
   "devDependencies": {
     "eslint": "^8.0.0"

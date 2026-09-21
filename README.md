@@ -2,6 +2,16 @@
 
 A modern, browser-compatible HTTP format converter library. Transform between HTTP strings, HAR (HTTP Archive), cURL commands, and Fetch API calls.
 
+## Contents
+
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [API Reference](#api-reference)
+- [Browser Support](#browser-support)
+- [TypeScript](#typescript)
+- [License](#license)
+
 ## Features
 
 - 🌐 **Browser-first**: No Node.js dependencies, works in any modern browser
