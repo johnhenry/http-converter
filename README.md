@@ -1,5 +1,11 @@
 # @johnhenry/http-converter
 
+[![npm version](https://img.shields.io/npm/v/%40johnhenry%2Fhttp-converter.svg)](https://www.npmjs.com/package/@johnhenry/http-converter)
+[![CI](https://github.com/johnhenry/http-converter/actions/workflows/ci.yml/badge.svg)](https://github.com/johnhenry/http-converter/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/%40johnhenry%2Fhttp-converter.svg)](LICENSE)
+
+Full documentation: [opensource.johnhenry.me/http-converter](https://opensource.johnhenry.me/http-converter/)
+
 > **Provenance.** Adopted into the `@johnhenry` npm scope -- the unscoped
 > `http-converter` name is held by an unrelated, empty package from another
 > author, so this was never published under that name. Version restarts at
@@ -16,6 +22,9 @@ A modern, browser-compatible HTTP format converter library. Transform between HT
 - [API Reference](#api-reference)
 - [Browser Support](#browser-support)
 - [TypeScript](#typescript)
+- [Examples](#examples)
+- [Honest limitations](#honest-limitations)
+- [Family](#family)
 - [License](#license)
 
 ## Features
@@ -346,6 +355,38 @@ Supported in all modern browsers (Chrome 61+, Firefox 60+, Safari 10.1+, Edge 79
 ## TypeScript
 
 This library includes TypeScript definitions. See [TYPESCRIPT.md](./TYPESCRIPT.md) for usage examples.
+
+## Examples
+
+Two runnable, self-verifying scripts live under [`examples/`](./examples) —
+see [`examples/README.md`](./examples/README.md) for what each one proves.
+Run them all with `npm run examples`, or one with `npm run example:01`.
+
+## Honest limitations
+
+- **cURL parsing covers the common flag set, not curl's full option
+  surface.** `curl.toRequest()` recognizes method/header/data/form/auth/
+  user-agent/referer/cookie/location/verbose/silent/insecure/compressed and
+  timeout flags — the tokenizer itself is a correct, general-purpose
+  shell-quoting parser (it round-trips escaped apostrophes and embedded
+  quotes correctly), but an unrecognized flag is silently skipped rather
+  than rejected. A cURL command using a flag outside this list will parse
+  without error but drop that flag's effect.
+- **Format conversions are lossy in one direction: HAR's richer metadata
+  doesn't survive a round trip through the plain `HttpRequest`/
+  `HttpResponse` shape.** `har.toRequest()`/`har.toResponse()` extract only
+  the fields those two objects define (method, url, headers, body,
+  httpVersion) — HAR-specific fields like `cookies[]`, `queryString[]`,
+  `headersSize`, and timing data are read on the way *in* to build a HAR
+  entry (`fromRequest`/`fromResponse`) but have no equivalent to round-trip
+  back out through `toRequest`/`toResponse`.
+
+## Family
+
+| HTTP concern | Library | Status |
+|---|---|---|
+| Format conversion (HTTP string / HAR / cURL / fetch) | `@johnhenry/http-converter` (this package) | — |
+| Structured Field Values (RFC 8941 & RFC 9651) | [`@johnhenry/http-fields`](https://github.com/johnhenry/http-fields) | published — sibling HTTP-spec library from the same author; no runtime dependency between them |
 
 ## License
 
