@@ -5,8 +5,8 @@ This library includes TypeScript type definitions in `types.d.ts`.
 ## Using with TypeScript
 
 ```typescript
-import * as http from 'http-converter';
-import type { HttpRequest, HttpResponse, HarEntry } from 'http-converter';
+import * as http from '@johnhenry/http-converter';
+import type { HttpRequest, HttpResponse, HarEntry } from '@johnhenry/http-converter';
 
 // Type-safe request creation
 const request: HttpRequest = {
@@ -69,10 +69,10 @@ All major types are exported:
 Each module has typed exports:
 
 ```typescript
-import * as string from 'http-converter/string';
-import * as har from 'http-converter/har';
-import * as curl from 'http-converter/curl';
-import * as fetch from 'http-converter/fetch';
+import * as string from '@johnhenry/http-converter/string';
+import * as har from '@johnhenry/http-converter/har';
+import * as curl from '@johnhenry/http-converter/curl';
+import * as fetch from '@johnhenry/http-converter/fetch';
 
 // All methods are fully typed
 const parsed: HttpRequest = string.parseRequest('GET / HTTP/1.1\\r\\n\\r\\n');

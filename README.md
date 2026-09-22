@@ -1,4 +1,10 @@
-# http-converter
+# @johnhenry/http-converter
+
+> **Provenance.** Adopted into the `@johnhenry` npm scope -- the unscoped
+> `http-converter` name is held by an unrelated, empty package from another
+> author, so this was never published under that name. Version restarts at
+> `0.0.0`: a new scope is a new era, not a reflection of this library's
+> actual maturity (103 tests, a real bug-fix history -- see CHANGELOG.md).
 
 A modern, browser-compatible HTTP format converter library. Transform between HTTP strings, HAR (HTTP Archive), cURL commands, and Fetch API calls.
 
@@ -26,7 +32,7 @@ A modern, browser-compatible HTTP format converter library. Transform between HT
 ## Installation
 
 ```bash
-npm install http-converter
+npm install @johnhenry/http-converter
 ```
 
 ## Usage
@@ -34,7 +40,7 @@ npm install http-converter
 ### Basic Examples
 
 ```javascript
-import * as http from 'http-converter';
+import * as http from '@johnhenry/http-converter';
 
 // Parse HTTP string
 const request = http.string.parse(`GET /api HTTP/1.1
@@ -60,7 +66,7 @@ const response = await fetch(url, options);
 Parse and stringify HTTP messages:
 
 ```javascript
-import * as string from 'http-converter/string';
+import * as string from '@johnhenry/http-converter/string';
 
 // Parse request
 const req = string.parseRequest(`POST /users HTTP/1.1
@@ -99,7 +105,7 @@ const httpString2 = await string.stringifyRequest({
 Convert to/from HAR (HTTP Archive) format:
 
 ```javascript
-import * as har from 'http-converter/har';
+import * as har from '@johnhenry/http-converter/har';
 
 // Convert request to HAR entry (fromRequest is async)
 const harEntry = await har.fromRequest({
@@ -121,7 +127,7 @@ const httpResponse = har.toResponse(harEntry);
 Convert between cURL commands and HTTP requests:
 
 ```javascript
-import * as curl from 'http-converter/curl';
+import * as curl from '@johnhenry/http-converter/curl';
 
 // Generate cURL command (fromRequest is async)
 const command = await curl.fromRequest({
@@ -145,7 +151,7 @@ const fetchCode = curl.toFetchCode(command);
 Convert between Fetch API and HTTP objects:
 
 ```javascript
-import * as fetch from 'http-converter/fetch';
+import * as fetch from '@johnhenry/http-converter/fetch';
 
 // Convert to Fetch parameters (fromRequest is async)
 const { url, options } = await fetch.fromRequest({
@@ -168,7 +174,7 @@ const code = await fetch.toCode(request, { pretty: true, async: true });
 ### Utility Functions
 
 ```javascript
-import { detectType, normalizeHeaders } from 'http-converter';
+import { detectType, normalizeHeaders } from '@johnhenry/http-converter';
 
 // Auto-detect format type
 detectType('GET / HTTP/1.1'); // 'request'
@@ -230,7 +236,7 @@ Note: `fromRequest` and `toCode` are always `async`.
 
 ### Utilities
 
-These are available both as the root package export (`import { parseQueryString } from 'http-converter'`) and via the `http-converter/core/utils` subpath.
+These are available both as the root package export (`import { parseQueryString } from '@johnhenry/http-converter'`) and via the `@johnhenry/http-converter/core/utils` subpath.
 
 - `detectType(input)` - Detect format type
 - `normalizeHeaders(headers)` - Normalize headers to plain object
@@ -244,7 +250,7 @@ These are available both as the root package export (`import { parseQueryString 
 Parse request/response bodies with automatic format detection:
 
 ```js
-import { parseBody } from 'http-converter/body';
+import { parseBody } from '@johnhenry/http-converter/body';
 
 const parsed = parseBody('{"hello":"world"}', 'application/json');
 // { type: 'json', formatted: '{\n  "hello": "world"\n}', raw: '...' }
@@ -259,7 +265,7 @@ Parses request/response bodies. Detects JSON, XML, HTML, form-encoded, or plain 
 Generate all format representations in one call:
 
 ```js
-import { allFormats } from 'http-converter';
+import { allFormats } from '@johnhenry/http-converter';
 const formats = await allFormats(request);
 // { httpString, curl, fetchCode, har }
 ```
@@ -273,7 +279,7 @@ Generates all format representations (HTTP string, cURL, fetch code, HAR) for a 
 Generate random HTTP requests for testing, demos, and development:
 
 ```js
-import { randomRequest, randomMethod, randomPath, randomHeaders, randomBody } from 'http-converter/random';
+import { randomRequest, randomMethod, randomPath, randomHeaders, randomBody } from '@johnhenry/http-converter/random';
 
 // Generate a random request
 const req = randomRequest();
@@ -318,13 +324,13 @@ Individual generators for each request component. Accept the same relevant optio
 
 | Export | Description |
 |--------|-------------|
-| `http-converter` | Core: `detectType`, `normalizeHeaders`, `allFormats`, `parseQueryString`, `buildUrl`, `getByteSize`, `formatHeaders` |
-| `http-converter/string` | HTTP string parsing and stringification |
-| `http-converter/har` | HAR format conversion |
-| `http-converter/curl` | cURL command conversion |
-| `http-converter/fetch` | Fetch API conversion |
-| `http-converter/body` | Body parsing and formatting |
-| `http-converter/random` | Random HTTP request generation |
+| `@johnhenry/http-converter` | Core: `detectType`, `normalizeHeaders`, `allFormats`, `parseQueryString`, `buildUrl`, `getByteSize`, `formatHeaders` |
+| `@johnhenry/http-converter/string` | HTTP string parsing and stringification |
+| `@johnhenry/http-converter/har` | HAR format conversion |
+| `@johnhenry/http-converter/curl` | cURL command conversion |
+| `@johnhenry/http-converter/fetch` | Fetch API conversion |
+| `@johnhenry/http-converter/body` | Body parsing and formatting |
+| `@johnhenry/http-converter/random` | Random HTTP request generation |
 
 ## Browser Support
 

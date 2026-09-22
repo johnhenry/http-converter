@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (breaking)
+
+- **Renamed the package from unscoped `http-converter` to `@johnhenry/http-converter`, adopting it into the `@johnhenry` npm scope.** The unscoped name was never actually published under -- it's held by an unrelated, empty package from another author -- so this is this library's first real npm release, not a re-publish. Version restarts at `0.0.0` per the family's scope-adoption convention (a new address is a new era), independent of the real functionality/bug-fix history already recorded above. Added CI (`ci.yml`, Node 26 floor) and a release-triggered `publish.yml`, matching the rest of the `@johnhenry/*` family.
+
 ### Fixed
 
 - **cURL parser silently corrupted data**: `curl.toRequest()`'s tokenizer used a single regex that mangled the escaped-apostrophe pattern Chrome/Firefox's "Copy as cURL" produces for embedded quotes (`'it'\''s'`), turning `{"a":"it's"}` into garbage instead of round-tripping correctly. Rewrote as a proper character-level tokenizer with correct single/double-quote and backslash-escape handling. Also fixed: flags expecting a value (`-H`, `-X`, `--data-urlencode`, etc.) with no value crashed with a cryptic `Cannot read properties of undefined` instead of a clear error; unterminated quotes silently vanished instead of erroring.
