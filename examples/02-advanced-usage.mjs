@@ -1,5 +1,5 @@
 // Advanced usage examples
-import * as http from './index.mjs';
+import * as http from '../index.mjs';
 
 async function main() {
   // Example 1: Working with multipart/form-data
