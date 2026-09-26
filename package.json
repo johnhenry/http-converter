@@ -1,6 +1,6 @@
 {
   "name": "@johnhenry/http-converter",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Modern HTTP format converter - Transform between HTTP strings, HAR, cURL commands, and Fetch API",
   "type": "module",
   "main": "index.mjs",
@@ -10,13 +10,34 @@
       "import": "./index.mjs",
       "types": "./types.d.ts"
     },
-    "./string": "./string/index.mjs",
-    "./har": "./har/index.mjs",
-    "./curl": "./curl/index.mjs",
-    "./fetch": "./fetch/index.mjs",
-    "./core/utils": "./core/utils.mjs",
-    "./body": "./body/index.mjs",
-    "./random": "./random/index.mjs"
+    "./string": {
+      "import": "./string/index.mjs",
+      "types": "./string/index.d.mts"
+    },
+    "./har": {
+      "import": "./har/index.mjs",
+      "types": "./har/index.d.mts"
+    },
+    "./curl": {
+      "import": "./curl/index.mjs",
+      "types": "./curl/index.d.mts"
+    },
+    "./fetch": {
+      "import": "./fetch/index.mjs",
+      "types": "./fetch/index.d.mts"
+    },
+    "./core/utils": {
+      "import": "./core/utils.mjs",
+      "types": "./core/utils.d.mts"
+    },
+    "./body": {
+      "import": "./body/index.mjs",
+      "types": "./body/index.d.mts"
+    },
+    "./random": {
+      "import": "./random/index.mjs",
+      "types": "./random/index.d.mts"
+    }
   },
   "files": [
     "index.mjs",
@@ -32,6 +53,7 @@
   "scripts": {
     "test": "node --test test/**/*.test.mjs",
     "test:watch": "node --test --watch test/**/*.test.mjs",
+    "test:types": "tsc --noEmit -p test/types/tsconfig.json",
     "lint": "eslint .",
     "examples": "for f in examples/[0-9]*.mjs; do echo \"=== $f\"; node \"$f\" || exit 1; done",
     "example:01": "node examples/01-url-formats.mjs",
@@ -56,7 +78,8 @@
     "node": ">=26.0.0"
   },
   "devDependencies": {
-    "eslint": "^8.0.0"
+    "eslint": "^8.0.0",
+    "typescript": "^7.0.0"
   },
   "repository": {
     "type": "git",

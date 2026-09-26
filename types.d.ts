@@ -130,42 +130,72 @@ export interface StringifyOptions {
   absoluteUrl?: boolean;
 }
 
-// String module exports
-export declare namespace string {
-  export function parse(httpString: string): HttpRequest | HttpResponse;
-  export function parseRequest(requestString: string): HttpRequest;
-  export function parseResponse(responseString: string): HttpResponse;
-  export function stringify(httpObject: HttpRequest | HttpResponse): Promise<string>;
-  export function stringifyRequest(request: HttpRequest | Request, options?: StringifyOptions): Promise<string>;
-  export function stringifyResponse(response: HttpResponse | Response): Promise<string>;
+export interface ParsedBody {
+  type: string;
+  formatted: string;
+  raw: string;
 }
 
-// HAR module exports
-export declare namespace har {
-  export function fromRequest(request: HttpRequest | Request, options?: HarOptions): Promise<HarEntry>;
-  export function fromResponse(response: HttpResponse | Response, request?: HttpRequest | Request | null, options?: HarOptions): Promise<HarEntry>;
-  export function toRequest(harEntry: HarEntry): HttpRequest;
-  export function toResponse(harEntry: HarEntry): HttpResponse;
+export interface RandomMethodOptions {
+  seed?: number;
+  methods?: string[];
 }
 
-// cURL module exports
-export declare namespace curl {
-  export function fromRequest(request: HttpRequest | Request, options?: CurlOptions): Promise<string>;
-  export function toRequest(curlCommand: string): HttpRequest;
-  export function toFetchCode(curlCommand: string): string;
+export interface RandomPathOptions {
+  seed?: number;
+  paths?: string[] | ((rng: () => number) => string);
+  baseUrl?: string;
 }
 
-// Fetch module exports
-export declare namespace fetch {
-  export function fromRequest(request: HttpRequest | Request): Promise<{ url: string; options: RequestInit }>;
-  export function toRequest(url: string, options?: RequestInit): HttpRequest;
-  export function fromResponse(response: HttpResponse | Response, body?: string | null): any;
-  export function toResponse(fetchResponse: Response, includeBody?: boolean): Promise<HttpResponse>;
-  export function toCode(request: HttpRequest | Request, options?: FetchOptions): Promise<string>;
-  export function createMockResponse(httpResponse: HttpResponse): Response;
+export interface RandomHeadersOptions {
+  seed?: number;
+  headers?: boolean | Record<string, string>;
 }
 
-// Utility exports
+export interface RandomBodyOptions {
+  seed?: number;
+  method?: string;
+  body?: boolean | string | object | ((rng: () => number, method: string) => string);
+}
+
+export interface RandomRequestOptions {
+  seed?: number;
+  methods?: string[];
+  paths?: string[] | ((rng: () => number) => string);
+  headers?: boolean | Record<string, string>;
+  body?: boolean | string | object | ((rng: () => number, method: string) => string);
+  baseUrl?: string;
+  count?: number;
+}
+
+export interface AllFormatsOptions {
+  curl?: CurlOptions;
+  fetch?: FetchOptions;
+  har?: HarOptions;
+}
+
+export interface AllFormatsResult {
+  httpString: string;
+  curl: string;
+  fetchCode: string;
+  har: HarEntry;
+}
+
+// Module exports, re-exported as namespaces. Each namespace's declarations
+// live next to its implementation (e.g. ./string/index.d.mts next to
+// ./string/index.mjs) and are also reachable directly via the matching
+// subpath export (e.g. `@johnhenry/http-converter/string`).
+export * as string from './string/index.mjs';
+export * as har from './har/index.mjs';
+export * as curl from './curl/index.mjs';
+export * as fetch from './fetch/index.mjs';
+export * as body from './body/index.mjs';
+export * as random from './random/index.mjs';
+
+// allFormats: convert a request to all supported formats at once.
+export function allFormats(request: HttpRequest | Request, options?: AllFormatsOptions): Promise<AllFormatsResult>;
+
+// Utility exports (also reachable via the `./core/utils` subpath)
 export function detectType(input: string | object): 'request' | 'response' | 'curl' | 'har' | 'unknown';
 export function normalizeHeaders(headers: any): Record<string, string | string[]>;
 export function parseQueryString(url: string): HarQueryParam[];
