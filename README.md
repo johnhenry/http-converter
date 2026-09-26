@@ -157,7 +157,16 @@ const fetchCode = curl.toFetchCode(command);
 
 ### Fetch Module
 
-Convert between Fetch API and HTTP objects:
+Convert between Fetch API parameters and HTTP objects:
+
+> **Note:** this module works with structured `(url, options)` *values*, not
+> `fetch()` *source code*. There is no parser that takes a pasted
+> `fetch(...)` call (e.g. copied from a browser's "Copy as fetch") and
+> extracts a request from it — `fetch.toRequest(url, options)` expects the
+> real `url` string and `options` object, already evaluated. Source-text
+> parsing exists only for HTTP strings (`string.parse`/`parseRequest`) and
+> cURL commands (`curl.toRequest`); `fetch.toCode`/`curl.toFetchCode` only
+> *generate* fetch() code, they don't read it back in.
 
 ```javascript
 import * as fetch from '@johnhenry/http-converter/fetch';
@@ -372,6 +381,15 @@ Run them all with `npm run examples`, or one with `npm run example:01`.
   quotes correctly), but an unrecognized flag is silently skipped rather
   than rejected. A cURL command using a flag outside this list will parse
   without error but drop that flag's effect.
+- **There is no parser for `fetch()` source text.** Unlike cURL
+  (`curl.toRequest(commandString)`) or HTTP strings
+  (`string.parseRequest(rawText)`), the fetch module never parses code —
+  `fetch.toRequest(url, options)` takes real `url`/`options` *values*, not a
+  pasted `fetch(...)` call as a string. `detectType()` likewise never
+  returns `'fetch'`; it only recognizes `'request'`, `'response'`, `'curl'`,
+  and `'har'`. If you have fetch() source code (e.g. copied from a
+  browser's Network tab "Copy as fetch"), you'll need to extract the `url`
+  and `options` yourself (or `eval` it in a sandbox) before passing them in.
 - **Format conversions are lossy in one direction: HAR's richer metadata
   doesn't survive a round trip through the plain `HttpRequest`/
   `HttpResponse` shape.** `har.toRequest()`/`har.toResponse()` extract only

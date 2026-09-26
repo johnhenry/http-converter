@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.0.1 — subpath types (2026-09-26)
+
+### Fixed
+
+- **Subpath exports (`./string`, `./har`, `./curl`, `./fetch`, `./body`, `./random`, `./core/utils`) had no `types` condition in `package.json`'s `exports` map**, so e.g. `import { parseRequest } from '@johnhenry/http-converter/string'` was untyped (TS7016) despite `types.d.ts` describing those namespaces. Fixing this required real authoring, not just an `exports`-map edit: `types.d.ts` only declared each module's functions as members of a root-level namespace (e.g. `string.parseRequest`), not as the flat top-level exports each subpath actually has at runtime (`string/index.mjs` exports `parseRequest` directly, not nested under a `string` object) — TypeScript can't derive one shape from the other. Added a colocated `index.d.mts` next to each module's `index.mjs` (and `core/utils.d.mts`) with the real flat signatures, pointed each subpath's new `types` condition at it, and had the root `types.d.ts` re-export them as namespaces so `import * as http from '@johnhenry/http-converter'; http.string.parseRequest(...)` keeps working too. Also added `ParsedBody` and the `random` module's option interfaces to `types.d.ts`, which were missing entirely (the `body` and `random` namespaces weren't declared anywhere, not even at the root). Reported in #4.
+- **`allFormats` was exported from `index.mjs` but absent from `types.d.ts`**, so it couldn't be called from TypeScript without a cast (TS2305). Added `allFormats(request, options?)` plus `AllFormatsOptions`/`AllFormatsResult` to `types.d.ts`. Reported in #4.
+- **README overstated fetch() support**: the Fetch Module section and "Auto-detection" feature bullet read as if pasted `fetch()` *source code* could be parsed back into a request. In reality `fetch.toRequest(url, options)` takes real, already-evaluated `url`/`options` values — there is no source-text parser for fetch calls (unlike cURL commands or HTTP strings, which do have one), and `detectType()` never returns `'fetch'`. Documented this in the Fetch Module section and added an entry to [Honest limitations](README.md#honest-limitations). Reported in #4.
+
+### Added
+
+- `test/types.test.mjs`: a regression test that runs a real `tsc --noEmit` against `test/types/check-types.ts`, which imports from every subpath and calls `allFormats()`. Catches both gaps above if they regress.
+
 ## 0.0.0 — npm scope migration (2026-09-21)
 
 ### Changed (breaking)
