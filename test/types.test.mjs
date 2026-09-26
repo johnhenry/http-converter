@@ -7,6 +7,16 @@
 // This runs the real TypeScript compiler against test/types/check-types.ts,
 // which imports from every subpath (via package self-reference) and calls
 // allFormats(). If either gap regresses, `tsc` exits non-zero.
+//
+// typescript@7's compiler API surface (`require('typescript')`) is just
+// `{ version, versionMajorMinor }` now -- the actual checker moved behind
+// the CLI entry point, so this has to shell out. `node_modules/.bin/tsc`
+// is itself only a POSIX shebang -> `../lib/tsc.js`; on Windows the real
+// executable is `.bin/tsc.cmd`, and spawnSync needs `shell: true` to launch
+// a `.cmd` at all (that auto-wrap only happens for `exec`, not `spawn`).
+// Skip the `.bin` shim entirely and spawn `node` directly against
+// `typescript/lib/tsc.js` -- identical on every platform, since it's
+// `node <script>` either way.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { spawnSync } from 'node:child_process';
@@ -15,25 +25,11 @@ import path from 'node:path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
-// On Windows, npm installs CLI shims as `.cmd` (and `.ps1`) files, not the
-// extensionless POSIX shebang script that lives at `.bin/tsc`. Resolving the
-// extensionless path directly on win32 makes spawnSync fail to launch the
-// process at all (result.status === null, result.stdout/stderr undefined),
-// since that file isn't natively executable there. Node's child_process
-// already special-cases `.cmd`/`.bat` targets on win32 by wrapping them with
-// cmd.exe internally, so pointing at the real `.cmd` shim works cross-platform
-// without needing `shell: true` (which would reintroduce shell-quoting/
-// injection concerns for `.cmd`/`.bat` targets).
-const tsc = path.join(
-  repoRoot,
-  'node_modules',
-  '.bin',
-  process.platform === 'win32' ? 'tsc.cmd' : 'tsc'
-);
+const tscEntry = path.join(repoRoot, 'node_modules', 'typescript', 'lib', 'tsc.js');
 const tsconfig = path.join(__dirname, 'types', 'tsconfig.json');
 
 test('subpath exports and allFormats() type-check with a real tsc --noEmit', () => {
-  const result = spawnSync(tsc, ['--noEmit', '-p', tsconfig], {
+  const result = spawnSync(process.execPath, [tscEntry, '--noEmit', '-p', tsconfig], {
     cwd: repoRoot,
     encoding: 'utf8',
   });
