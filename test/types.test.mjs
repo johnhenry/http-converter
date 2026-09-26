@@ -15,7 +15,21 @@ import path from 'node:path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
-const tsc = path.join(repoRoot, 'node_modules', '.bin', 'tsc');
+// On Windows, npm installs CLI shims as `.cmd` (and `.ps1`) files, not the
+// extensionless POSIX shebang script that lives at `.bin/tsc`. Resolving the
+// extensionless path directly on win32 makes spawnSync fail to launch the
+// process at all (result.status === null, result.stdout/stderr undefined),
+// since that file isn't natively executable there. Node's child_process
+// already special-cases `.cmd`/`.bat` targets on win32 by wrapping them with
+// cmd.exe internally, so pointing at the real `.cmd` shim works cross-platform
+// without needing `shell: true` (which would reintroduce shell-quoting/
+// injection concerns for `.cmd`/`.bat` targets).
+const tsc = path.join(
+  repoRoot,
+  'node_modules',
+  '.bin',
+  process.platform === 'win32' ? 'tsc.cmd' : 'tsc'
+);
 const tsconfig = path.join(__dirname, 'types', 'tsconfig.json');
 
 test('subpath exports and allFormats() type-check with a real tsc --noEmit', () => {
