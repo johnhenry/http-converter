@@ -201,4 +201,5 @@ export function normalizeHeaders(headers: any): Record<string, string | string[]
 export function parseQueryString(url: string): HarQueryParam[];
 export function buildUrl(baseUrl: string, queryParams?: HarQueryParam[]): string;
 export function getByteSize(str: string): number;
+export function getStatusPhrase(statusCode: number | string): string;
 export function formatHeaders(headers: Record<string, string | string[]>): string;
