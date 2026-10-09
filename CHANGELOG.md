@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.0.2 — status line fixes (2026-10-09)
+
+### Fixed
+
+- **`stringifyResponse` rendered a native `Response` with an empty `statusText` as `HTTP/1.1 404 ` (no reason phrase)**: `new Response(body, { status: 404 })` has `statusText === ''` by platform default, and that empty string was passed straight through, so the default-phrase lookup never ran. An empty or missing `statusText` now falls back to the standard phrase for the code; any provided `statusText` is preserved. Reported in #8.
+- **`stringifyResponse({ status: 404 })` rendered `HTTP/1.1 200 Not Found`**: the destructuring defaulted `statusCode = 200` before `status`, so the `statusCode` default beat the supplied `status` while the phrase was derived from `status`. `statusCode` and `status` are now both honoured (`statusCode` wins if both are given, 200 if neither). Reported in #8.
+- **Unregistered codes (e.g. `599`) no longer get a wrong or made-up phrase** when stringifying; the phrase is left empty. The phrase table moved to `core/utils` (`getStatusPhrase`) and now covers the full IANA registry instead of 17 codes.
+- **HAR `fromResponse` labelled every response without a `statusText` as `OK`** (e.g. a 404 became `404 OK`); it now uses the standard phrase for the code, via the same shared lookup.
+
+### Added
+
+- `test/status-line.test.mjs`: regression tests for both reported cases plus the edge cases above.
+
 ## 0.0.1 — subpath types (2026-09-26)
 
 ### Fixed

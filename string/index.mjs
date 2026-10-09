@@ -1,5 +1,5 @@
 // HTTP string parsing and stringifying
-import { normalizeHeaders, getByteSize, formatHeaders } from '../core/utils.mjs';
+import { normalizeHeaders, getByteSize, formatHeaders, getStatusPhrase } from '../core/utils.mjs';
 
 /**
  * Parse HTTP string (auto-detect request or response)
@@ -114,7 +114,7 @@ export const parseResponse = (responseString) => {
   return {
     httpVersion,
     statusCode: parseInt(statusCode, 10),
-    statusText: statusText || getDefaultStatusText(parseInt(statusCode, 10)),
+    statusText: statusText || getStatusPhrase(parseInt(statusCode, 10)) || 'Unknown',
     headers,
     body: body || null
   };
@@ -306,17 +306,21 @@ const stringifyResponseAsync = async (response) => {
 };
 
 const stringifyResponseSync = (response) => {
-  const { 
-    httpVersion = '1.1', 
-    statusCode = 200,
-    status = statusCode, // Support both statusCode and status
-    statusText = getDefaultStatusText(status || statusCode), 
-    headers = {}, 
-    body 
+  const {
+    httpVersion = '1.1',
+    statusCode,
+    status,
+    statusText,
+    headers = {},
+    body
   } = response;
-  
-  const finalStatusCode = statusCode || status;
-  let result = `HTTP/${httpVersion} ${finalStatusCode} ${statusText}\r\n`;
+
+  // Accept both statusCode and status; statusCode wins when both are given.
+  const finalStatusCode = statusCode ?? status ?? 200;
+  // Preserve any provided reason phrase; otherwise use the standard one
+  // (empty for unregistered codes rather than a wrong phrase).
+  const finalStatusText = statusText || getStatusPhrase(finalStatusCode);
+  let result = `HTTP/${httpVersion} ${finalStatusCode} ${finalStatusText}\r\n`;
   
   // Normalize and add headers
   const normalizedHeaders = normalizeHeaders(headers);
@@ -334,33 +338,4 @@ const stringifyResponseSync = (response) => {
   }
   
   return result;
-};
-
-/**
- * Get default status text for status code
- * @param {number} statusCode - HTTP status code
- * @returns {string} Default status text
- */
-const getDefaultStatusText = (statusCode) => {
-  const statusTexts = {
-    100: 'Continue',
-    101: 'Switching Protocols',
-    200: 'OK',
-    201: 'Created',
-    202: 'Accepted',
-    204: 'No Content',
-    301: 'Moved Permanently',
-    302: 'Found',
-    304: 'Not Modified',
-    400: 'Bad Request',
-    401: 'Unauthorized',
-    403: 'Forbidden',
-    404: 'Not Found',
-    405: 'Method Not Allowed',
-    500: 'Internal Server Error',
-    502: 'Bad Gateway',
-    503: 'Service Unavailable'
-  };
-  
-  return statusTexts[statusCode] || 'Unknown';
 };

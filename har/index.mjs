@@ -1,5 +1,5 @@
 // HAR (HTTP Archive) format conversion
-import { normalizeHeaders, parseQueryString, getByteSize } from '../core/utils.mjs';
+import { normalizeHeaders, parseQueryString, getByteSize, getStatusPhrase } from '../core/utils.mjs';
 
 /**
  * Convert HTTP request to HAR entry
@@ -131,9 +131,11 @@ export const fromResponse = async (response, request = null, options = {}) => {
   
   const headers = normalizeHeaders(response.headers);
   
+  const responseStatus = response.statusCode || response.status || 200;
+
   entry.response = {
-    status: response.statusCode || response.status || 200,
-    statusText: response.statusText || 'OK',
+    status: responseStatus,
+    statusText: response.statusText || getStatusPhrase(responseStatus),
     httpVersion: `HTTP/${response.httpVersion || '1.1'}`,
     cookies: parseCookies(headers['set-cookie']),
     headers: Object.entries(headers).map(([name, value]) => {
