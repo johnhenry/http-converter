@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.1.0 — Viaframe import fixes (2026-10-20)
+
+### Added
+
+- **`fetch.parse(source)`**: parses `fetch(url, init)` source text (e.g. devtools "Copy as fetch") into a request object with a small literal-only reader, never `eval`. Rejects anything that is not a plain literal. Closes #10.
+- **`detectType` returns `'fetch'`** for `fetch(...)` source text.
+- **`har.toRequest(entryOrHar, { preserveHeaderCase, includeCookies, entryIndex })`**: keep header-name case, skip the synthesized `cookie` header, and pick an entry when given a whole HAR file. Defaults are unchanged. Closes #11.
+
+### Fixed
+
+- **`detectType` did not recognize a real HAR file** (`{ log: { entries } }`, as an object or as JSON text); it returned `'unknown'`. Closes #11.
+- **`detectType` / `string.parse` rejected absolute-URL request lines** such as `GET https://example.com/x HTTP/1.1`. Closes #11.
+- **`har.toRequest` dropped `postData.params`** when `postData.text` was absent (the body came back `null`); it now builds a urlencoded body from the params. Closes #11.
+
 ## 0.0.2 — status line fixes (2026-10-09)
 
 ### Fixed

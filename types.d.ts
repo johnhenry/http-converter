@@ -196,7 +196,7 @@ export * as random from './random/index.mjs';
 export function allFormats(request: HttpRequest | Request, options?: AllFormatsOptions): Promise<AllFormatsResult>;
 
 // Utility exports (also reachable via the `./core/utils` subpath)
-export function detectType(input: string | object): 'request' | 'response' | 'curl' | 'har' | 'unknown';
+export function detectType(input: string | object): 'request' | 'response' | 'curl' | 'fetch' | 'har' | 'unknown';
 export function normalizeHeaders(headers: any): Record<string, string | string[]>;
 export function parseQueryString(url: string): HarQueryParam[];
 export function buildUrl(baseUrl: string, queryParams?: HarQueryParam[]): string;

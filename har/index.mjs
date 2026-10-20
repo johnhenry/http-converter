@@ -161,18 +161,31 @@ export const fromResponse = async (response, request = null, options = {}) => {
 
 /**
  * Convert HAR entry to HTTP request
- * @param {Object} harEntry - HAR entry object
+ * @param {Object} harEntry - HAR entry object, or a whole HAR file ({ log: { entries } })
+ * @param {Object} [options]
+ * @param {boolean} [options.preserveHeaderCase=false] - Keep header names as written instead of lowercasing
+ * @param {boolean} [options.includeCookies=true] - Synthesize a cookie header from request.cookies[]; false leaves headers as recorded
+ * @param {number} [options.entryIndex=0] - Which entry to use when given a whole HAR file
  * @returns {Object} HTTP request object
  * @example
  * toRequest(harEntry)
  */
-export const toRequest = (harEntry) => {
-  const { request } = harEntry;
+export const toRequest = (harEntry, options = {}) => {
+  const { preserveHeaderCase = false, includeCookies = true, entryIndex = 0 } = options;
+  // Accept a whole HAR file ({ log: { entries } }) as well as a single entry
+  const entry = harEntry?.log?.entries ? harEntry.log.entries[entryIndex] : harEntry;
+  if (!entry || !entry.request) {
+    throw new Error('No HAR request entry found');
+  }
+  const { request } = entry;
   const headers = {};
+  const casing = {}; // lowercase name -> first-seen name
 
   // Convert headers array to object (headers is optional per the HAR spec)
   (request.headers || []).forEach(({ name, value }) => {
-    const key = name.toLowerCase();
+    const lower = name.toLowerCase();
+    if (!(lower in casing)) casing[lower] = name;
+    const key = preserveHeaderCase ? casing[lower] : lower;
     if (headers[key]) {
       headers[key] = Array.isArray(headers[key])
         ? [...headers[key], value]
@@ -183,10 +196,18 @@ export const toRequest = (harEntry) => {
   });
 
   // Add cookies if present
-  if (request.cookies && request.cookies.length > 0) {
-    headers.cookie = request.cookies
+  if (includeCookies && request.cookies && request.cookies.length > 0) {
+    const cookieKey = preserveHeaderCase ? (casing.cookie || 'Cookie') : 'cookie';
+    headers[cookieKey] = request.cookies
       .map(cookie => `${cookie.name}=${cookie.value}`)
       .join('; ');
+  }
+
+  let body = request.postData?.text || null;
+  if (body === null && Array.isArray(request.postData?.params) && request.postData.params.length > 0) {
+    const usp = new URLSearchParams();
+    request.postData.params.forEach(({ name, value }) => usp.append(name, value ?? ''));
+    body = usp.toString();
   }
 
   return {
@@ -194,7 +215,7 @@ export const toRequest = (harEntry) => {
     url: buildUrlFromHar(request),
     httpVersion: (request.httpVersion || 'HTTP/1.1').replace('HTTP/', ''),
     headers,
-    body: request.postData?.text || null
+    body
   };
 };
 
