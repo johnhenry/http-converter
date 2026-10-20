@@ -3,7 +3,7 @@
 /**
  * Detect the type of input data
  * @param {string|Object} input - Input to analyze
- * @returns {'request'|'response'|'curl'|'har'|'unknown'} Detected type
+ * @returns {'request'|'response'|'curl'|'fetch'|'har'|'unknown'} Detected type
  * @example
  * detectType('GET / HTTP/1.1') // 'request'
  * detectType('HTTP/1.1 200 OK') // 'response'
@@ -13,15 +13,24 @@ export const detectType = (input) => {
   if (typeof input === 'string') {
     const trimmed = input.trim();
     if (trimmed.startsWith('HTTP/')) return 'response';
-    // Match any word (method) followed by space and path
-    if (trimmed.match(/^[A-Z]+\s+\//)) return 'request';
+    // Match any word (method) followed by space and a path or absolute URL
+    if (trimmed.match(/^[A-Z]+\s+(\/|https?:\/\/)/)) return 'request';
     if (trimmed.startsWith('curl')) return 'curl';
+    if (/^(?:(?:const|let|var)\s+[\w$]+\s*=\s*)?(?:await\s+)?fetch\s*\(/.test(trimmed)) return 'fetch';
+    if (trimmed.startsWith('{')) {
+      // A HAR file pasted as JSON text
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed === 'object' && detectType(parsed) === 'har') return 'har';
+      } catch { /* not JSON */ }
+    }
   }
   if (typeof input === 'object' && input !== null) {
     // HAR format detection - check for various HAR structures
     if ('startedDateTime' in input && 'request' in input) return 'har'; // HAR entry
     if ('request' in input && 'response' in input && 'timings' in input) return 'har'; // HAR entry
-    if ('log' in input && 'entries' in input) return 'har'; // Full HAR file
+    if ('log' in input && 'entries' in input) return 'har'; // legacy: log-like object
+    if (input.log && typeof input.log === 'object' && Array.isArray(input.log.entries)) return 'har'; // Full HAR file {log:{entries}}
     if ('method' in input && 'url' in input && 'httpVersion' in input && 'headers' in input) {
       // Could be HAR request or regular request - check headers format
       if (Array.isArray(input.headers)) return 'har'; // HAR uses array format for headers

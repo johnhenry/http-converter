@@ -1,5 +1,16 @@
 // Fetch API conversion
 import { normalizeHeaders } from '../core/utils.mjs';
+import { parseFetchSource } from './parse.mjs';
+
+/**
+ * Parse fetch(...) source text (e.g. devtools "Copy as fetch") into an HTTP
+ * request object. Never evaluates the text; only literal values are accepted.
+ * @param {string} source - Source text of a fetch call
+ * @returns {Object} HTTP request object
+ * @example
+ * parse('fetch("/api", { method: "POST", body: "{}" })')
+ */
+export const parse = parseFetchSource;
 
 /**
  * Convert HTTP request to Fetch API parameters

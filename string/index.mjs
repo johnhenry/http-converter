@@ -14,7 +14,7 @@ export const parse = (httpString) => {
     return parseResponse(httpString);
   }
   // Match any word followed by a space and path-like string
-  if (trimmed.match(/^[A-Z]+\s+\//)) {
+  if (trimmed.match(/^[A-Z]+\s+(\/|https?:\/\/)/)) {
     return parseRequest(httpString);
   }
   throw new Error('Cannot detect HTTP message type');

@@ -1,7 +1,7 @@
 // Type definitions for the ./core/utils subpath (mirrors core/utils.mjs)
 import type { HarQueryParam } from '../types.d.ts';
 
-export function detectType(input: string | object): 'request' | 'response' | 'curl' | 'har' | 'unknown';
+export function detectType(input: string | object): 'request' | 'response' | 'curl' | 'fetch' | 'har' | 'unknown';
 export function normalizeHeaders(headers: any): Record<string, string | string[]>;
 export function parseQueryString(url: string): HarQueryParam[];
 export function buildUrl(baseUrl: string, queryParams?: HarQueryParam[]): string;

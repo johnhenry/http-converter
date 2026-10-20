@@ -7,3 +7,4 @@ export function fromResponse(response: HttpResponse | Response, body?: string | 
 export function toResponse(fetchResponse: Response, includeBody?: boolean): Promise<HttpResponse>;
 export function toCode(request: HttpRequest | Request, options?: FetchOptions): Promise<string>;
 export function createMockResponse(httpResponse: HttpResponse): Response;
+export function parse(source: string): HttpRequest;
