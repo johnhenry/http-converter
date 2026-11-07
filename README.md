@@ -401,6 +401,11 @@ Run them all with `npm run examples`, or one with `npm run example:01`.
 | Format conversion (HTTP string / HAR / cURL / fetch) | `@johnhenry/http-converter` (this package) | — |
 | Structured Field Values (RFC 8941 & RFC 9651) | [`@johnhenry/http-fields`](https://github.com/johnhenry/http-fields) | published — sibling HTTP-spec library from the same author; no runtime dependency between them |
 
+**[`@johnhenry/prism`](https://github.com/johnhenry/prism)**, a live HTTP
+request inspector/proxy, uses `allFormats`, `./curl`, `./har`, and `./body`
+to render every captured request/response in multiple formats in its
+dashboard.
+
 ## License
 
 MIT
